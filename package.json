@@ -1,0 +1,74 @@
+// تهيئة قاعدة البيانات SQLite مع بيانات مبدئية (مستخدم تجريبي ومنتجات)
+const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require('bcrypt');
+
+const db = new sqlite3.Database('./store.db');
+
+async function init() {
+  db.serialize(async () => {
+    db.run(`DROP TABLE IF EXISTS users`);
+    db.run(`DROP TABLE IF EXISTS products`);
+
+    db.run(`
+      CREATE TABLE users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE,
+        password_hash TEXT,
+        phone TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        login_count INTEGER DEFAULT 0
+      )
+    `);
+
+    db.run(`
+      CREATE TABLE products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        category TEXT,
+        description TEXT,
+        price REAL,
+        image_url TEXT
+      )
+    `);
+
+    // إنشاء مستخدم تجريبي
+    const password = "Password123";
+    const hash = await bcrypt.hash(password, 10);
+    db.run(
+      `INSERT INTO users (email, password_hash, phone, login_count) VALUES (?, ?, ?, ?)`,
+      ["ahemdgamal95@gmail.com", hash, "01554547362", 0],
+      function (err) {
+        if (err) console.error(err);
+        else console.log("Created demo user: ahemdgamal95@gmail.com / Password123");
+      }
+    );
+
+    // إضافة منتجات تجريبية (صور من Unsplash)
+    const products = [
+      ["MacBook Pro 16\"", "electronics", "حاسوب محمول عالي الأداء", 2499.99, "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800"],
+      ["iPhone 15 Pro", "electronics", "هاتف ذكي أحدث إصدار", 1199.99, "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800"],
+      ["LED Monitor 27\"", "electronics", "شاشة عرض عالية الوضوح", 299.99, "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800"],
+      ["قميص رجالي أنيق", "clothing", "قميص قطني مريح", 29.99, "https://images.unsplash.com/photo-1520975914404-7f7c3b4c6b7b?w=800"],
+      ["فساتين نسائية", "clothing", "أحدث تشكيلات الفساتين", 49.99, "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=800"],
+      ["مقلاة هوائية", "home", "مقلاة صحية بدون زيت", 89.99, "https://images.unsplash.com/photo-1600180758890-5f1c0c3babc0?w=800"],
+      ["مجموعة أواني مطبخ", "home", "طقم أواني عالي الجودة", 129.99, "https://images.unsplash.com/photo-1586201375755-c2f1a100dbdf?w=800"],
+      ["بدلة رياضية", "sports", "طقم رياضي مريح", 39.99, "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800"],
+      ["كرة قدم احترافية", "sports", "كرة لكرة القدم عالية الجودة", 24.99, "https://images.unsplash.com/photo-1521412644187-c49fa049e84d?w=800"],
+      ["لعبة فيديو جديدة", "games", "أحدث ألعاب الفيديو", 59.99, "https://images.unsplash.com/photo-1606813902819-4f3b7f3b7aeb?w=800"],
+      ["لعبة تركيب للأطفال", "games", "ألعاب تعليمية وترفيهية", 19.99, "https://images.unsplash.com/photo-1526403224745-3b0d8a0b5f4b?w=800"]
+    ];
+
+    const stmt = db.prepare(`INSERT INTO products (title, category, description, price, image_url) VALUES (?, ?, ?, ?, ?)`);
+    for (const p of products) {
+      stmt.run(p, (err) => {
+        if (err) console.error(err);
+      });
+    }
+    stmt.finalize();
+
+    console.log("Database initialized. Products inserted.");
+    db.close();
+  });
+}
+
+init();
